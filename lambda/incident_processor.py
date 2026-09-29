@@ -1,24 +1,30 @@
 import json
 import boto3
 import logging
+import uuid
+from datetime import datetime, timezone
 
-# Configure application logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Connect to the project DynamoDB table
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table("BonTech-Security-Incidents")
 
 
 def lambda_handler(event, context):
+    logger.info("Received event: %s", json.dumps(event))
+
+    detail = event.get("detail", {})
+    event_name = detail.get("eventName", "UnknownEvent")
+
     incident = {
-        "incident_id": "INC-002",
-        "event_type": "UnauthorizedAccess",
+        "incident_id": f"INC-{uuid.uuid4().hex[:8].upper()}",
+        "event_type": event_name,
         "severity": "HIGH",
         "status": "OPEN",
-        "source": "AWS",
-        "description": "Unauthorized access attempt detected",
+        "source": "EventBridge/CloudTrail",
+        "description": f"Sensitive IAM activity detected: {event_name}",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
     logger.info(
