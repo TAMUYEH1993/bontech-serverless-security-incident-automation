@@ -1,85 +1,87 @@
 # BonTech AWS Serverless Security Incident Automation
 
-A hands-on AWS cloud security engineering project that builds a serverless security incident automation platform using **AWS Lambda, Python/Boto3, DynamoDB, IAM least privilege, CloudWatch, EventBridge, SNS, API Gateway, and Terraform**.
+A hands-on AWS cloud security engineering project building a serverless security incident automation platform with **CloudTrail, EventBridge, AWS Lambda, Python/Boto3, DynamoDB, IAM least privilege, and CloudWatch**.
 
-> **Project status:** Day 1 completed — serverless incident processing foundation.
+> **Project status:** Day 2 completed — live event-driven IAM security detection validated end-to-end.
 
 ## Project Goal
 
-Build an AWS security automation workflow that can receive security events, process them with Python, persist incident records, produce operational logs, and later trigger alerts and automated response actions.
+Build a security automation workflow that detects sensitive AWS activity, processes it with serverless Python, persists structured incidents, and provides operational evidence for investigation and troubleshooting.
 
-### Target architecture
+## Current Architecture
 
 ```text
-Security Event
-      |
-      v
-EventBridge
-      |
-      v
+Sensitive IAM API activity
+        |
+        v
+AWS CloudTrail
+(write management events)
+        |
+        v
+Amazon EventBridge
+        |
+        v
 AWS Lambda (Python/Boto3)
-      |
-      +------> DynamoDB (incident record)
-      |
-      +------> CloudWatch Logs
-      |
-      +------> SNS (later)
-      |
-      +------> Automated Response (later)
-```
+        |
+        +------> DynamoDB (incident record)
+        |
+        +------> CloudWatch Logs
 
-Day 1 intentionally focuses on the foundation. EventBridge, SNS, API Gateway, automated remediation, and Terraform will be added in later stages.
+Future phases:
+        +------> SNS alerting
+        +------> Automated response
+        +------> API Gateway
+        +------> Terraform
+```
 
 ## Day 1 — Serverless Incident Processing Foundation
 
-### What I built
+- Created `BonTech-Security-Incidents` DynamoDB table.
+- Created `BonTech-Incident-Processor` Lambda using Python/Boto3.
+- Scoped the Lambda execution role to `dynamodb:PutItem` on the project table.
+- Validated Lambda-to-DynamoDB persistence.
+- Added CloudWatch application logging.
 
-- Created the `BonTech-Security-Incidents` DynamoDB table for incident records.
-- Added a baseline incident, `INC-001`, to validate the data model.
-- Created the `BonTech-Incident-Processor` AWS Lambda function using Python.
-- Used **Boto3**, the AWS SDK for Python, to communicate with DynamoDB.
-- Configured an IAM execution role using the **principle of least privilege**.
-- Allowed only `dynamodb:PutItem` against the project incident table rather than broad DynamoDB access.
-- Invoked Lambda with a test event and generated `INC-002`.
-- Verified the incident was successfully persisted in DynamoDB.
-- Added Python application logging and verified execution details in CloudWatch Logs.
+See [Day 1 documentation](docs/day-01.md).
 
-## Day 1 Data Flow
+## Day 2 — Event-Driven IAM Security Detection
 
-```text
-Lambda Test Event
-      |
-      v
-BonTech-Incident-Processor
-      |
-      v
-Python
-      |
-      v
-Boto3
-      |
-      v
-DynamoDB PutItem API
-      |
-      v
-IAM Authorization
-      |
-      v
-BonTech-Security-Incidents
-      |
-      +--> INC-002 stored
+- Created EventBridge rule `BonTech-Sensitive-IAM-Activity-Detection`.
+- Detects `AttachUserPolicy`, `PutUserPolicy`, `CreatePolicy`, and `DeletePolicy` CloudTrail API calls.
+- Created `BonTech-Security-Audit-Trail` for write management events.
+- Added a scoped Lambda resource-based permission for EventBridge invocation.
+- Updated Lambda for dynamic EventBridge/CloudTrail event processing.
+- Performed a live `DeletePolicy` test.
+- Verified EventBridge MatchedEvents, TriggeredRules, and Invocations.
+- Verified Lambda 100% success with zero errors.
+- Verified CloudWatch processing logs.
+- Verified the generated HIGH-severity OPEN incident in DynamoDB.
 
-Lambda
-      |
-      +--> CloudWatch Logs
-           - incident processing log
-           - DynamoDB success log
-           - START / END / REPORT
+See [Day 2 documentation](docs/day-02.md).
+
+## Detection Pattern
+
+```json
+{
+  "source": ["aws.iam"],
+  "detail-type": ["AWS API Call via CloudTrail"],
+  "detail": {
+    "eventSource": ["iam.amazonaws.com"],
+    "eventName": [
+      "AttachUserPolicy",
+      "PutUserPolicy",
+      "CreatePolicy",
+      "DeletePolicy"
+    ]
+  }
+}
 ```
 
-## Security Design — Least Privilege
+## Security Design
 
-The Lambda execution role was deliberately scoped to the operation required by the function:
+### Lambda execution authorization
+
+The Lambda execution role uses least privilege and permits only the DynamoDB operation required by the function:
 
 ```json
 {
@@ -89,49 +91,33 @@ The Lambda execution role was deliberately scoped to the operation required by t
 }
 ```
 
-The account ID is intentionally redacted in this public documentation.
+### Lambda invocation authorization
 
-This prevents the function from receiving unnecessary permissions such as `dynamodb:*`, `DeleteTable`, or unrestricted access to every DynamoDB table.
+A separate Lambda resource-based policy allows `events.amazonaws.com` to invoke the function and restricts the permission to the project's EventBridge rule ARN.
 
-## Day 1 Verification
+This separates **who can invoke the function** from **what the function can do**.
 
-The Day 1 test demonstrated that:
+## Live Day 2 Validation
 
-1. Lambda successfully executed the Python function.
-2. Boto3 issued the DynamoDB request.
-3. IAM authorized the permitted `PutItem` operation.
-4. DynamoDB stored incident `INC-002`.
-5. CloudWatch captured Lambda execution metrics and application logs.
-6. The Lambda invocation completed successfully with no execution error.
-
-The application logs included messages equivalent to:
+The live validation produced this chain:
 
 ```text
-Processing incident: INC-002 | Event: UnauthorizedAccess | Severity: HIGH | Status: OPEN
-Incident INC-002 successfully stored in DynamoDB
+IAM DeletePolicy
+      ↓
+CloudTrail recorded the write management event
+      ↓
+EventBridge MatchedEvents = 1
+      ↓
+TriggeredRules = 1
+      ↓
+Invocations = 1
+      ↓
+Lambda invocation succeeded
+      ↓
+CloudWatch logged DeletePolicy / HIGH / OPEN
+      ↓
+DynamoDB stored the generated incident
 ```
-
-## Incident Schema
-
-| Attribute | Example |
-|---|---|
-| `incident_id` | `INC-002` |
-| `event_type` | `UnauthorizedAccess` |
-| `severity` | `HIGH` |
-| `status` | `OPEN` |
-| `source` | `AWS` |
-| `description` | `Unauthorized access attempt detected` |
-
-## AWS Services Used on Day 1
-
-| Service / Technology | Purpose |
-|---|---|
-| AWS Lambda | Serverless incident-processing compute |
-| Python | Application and automation logic |
-| Boto3 | AWS SDK used by Python to call AWS services |
-| DynamoDB | Persistent security incident storage |
-| IAM | Lambda execution identity and least-privilege authorization |
-| CloudWatch Logs | Function execution and application logging |
 
 ## Repository Structure
 
@@ -141,18 +127,21 @@ Incident INC-002 successfully stored in DynamoDB
 ├── lambda/
 │   └── incident_processor.py
 ├── docs/
-│   └── day-01.md
+│   ├── day-01.md
+│   └── day-02.md
 └── evidence/
-    └── day-01/
+    ├── day-01/
+    │   └── README.md
+    └── day-02/
         └── README.md
 ```
 
-Screenshots will be added only after checking/redacting unnecessary AWS account identifiers and other sensitive information.
+Screenshots are published only after removing unnecessary account identifiers and sensitive information.
 
 ## Interview Talking Point
 
-> I built a Python-based AWS Lambda incident processor that uses Boto3 to persist security incidents in DynamoDB. I applied least-privilege IAM by limiting the execution role to the required DynamoDB PutItem operation on the project table. I also implemented application logging in CloudWatch so incident processing and successful database writes can be monitored and troubleshot.
+> I built an event-driven AWS security detection pipeline for sensitive IAM policy activity. CloudTrail records write management events, EventBridge filters high-value IAM API calls, and a Python Lambda function converts matched events into structured incidents in DynamoDB. I applied least privilege to both the Lambda execution role and EventBridge invocation permission, then validated the full workflow with a live DeletePolicy event using EventBridge metrics, Lambda metrics, CloudWatch logs, and DynamoDB evidence.
 
 ## Next Phase
 
-The next stages will evolve the manually tested foundation into an event-driven security automation platform by introducing EventBridge, SNS alerting, dynamic event processing, API Gateway, automated response logic, and Infrastructure as Code with Terraform.
+Day 3 can extend the pipeline with **SNS alerting and notification**, followed by automated response logic, API integration, and Terraform-based infrastructure deployment.
