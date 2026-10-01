@@ -46,7 +46,7 @@ Future phases:
 - Validated Lambda-to-DynamoDB persistence.
 - Added CloudWatch application logging.
 
-See [Day 1 documentation](docs/day-01.md).
+See [Day 1 documentation](docs/day-01.md) and [Day 1 evidence](evidence/day-01/).
 
 ## Day 2 — Event-Driven IAM Security Detection
 
@@ -61,7 +61,7 @@ See [Day 1 documentation](docs/day-01.md).
 - Verified CloudWatch processing logs.
 - Verified the generated HIGH-severity OPEN incident in DynamoDB.
 
-See [Day 2 documentation](docs/day-02.md).
+See [Day 2 documentation](docs/day-02.md) and [Day 2 evidence](evidence/day-02/).
 
 ## Day 3 — Automated Security Alerting with Amazon SNS
 
@@ -172,12 +172,14 @@ Security analyst receives the alert by email
 │   └── day-03.md
 └── evidence/
     ├── day-01/
-    │   └── README.md
+    │   ├── README.md
+    │   └── 6 sanitized AWS evidence screenshots
     ├── day-02/
-    │   └── README.md
+    │   ├── README.md
+    │   └── 6 sanitized AWS evidence screenshots
     └── day-03/
         ├── README.md
-        └── day-03-complete-evidence.png
+        └── AWS Security Automation Evidence Collage.png
 ```
 
 Screenshots are published only after removing unnecessary account identifiers and sensitive information.
