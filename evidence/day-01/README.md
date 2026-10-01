@@ -1,37 +1,38 @@
 # Day 1 Evidence
 
-Day 1 evidence was reviewed before publication. AWS account-specific identifiers should be redacted from public screenshots.
+Day 1 establishes the serverless incident-processing foundation: Lambda/Python/Boto3 writes structured security incidents to DynamoDB under least-privilege IAM permissions, with CloudWatch providing operational visibility.
 
-## Evidence prepared
+## Published sanitized evidence
 
 | File | What it demonstrates |
 |---|---|
-| `01-dynamodb-table-created.png` | The `BonTech-Security-Incidents` DynamoDB table was successfully created with `incident_id` as the partition key. |
-| `02-dynamodb-inc001.png` | Baseline security incident `INC-001` stored with event type, description, severity, source, and status attributes. |
-| `03-lambda-python-creation.png` | Creation of the `BonTech-Incident-Processor` Lambda function using Python 3.14. |
-| `04-lambda-test-event.png` | Lambda test configuration used to validate the Lambda-to-DynamoDB connection. |
-| `05-cloudwatch-success-logs.png` | CloudWatch application logs showing `INC-002` processing and successful DynamoDB storage. |
+| `01-iam-dynamodb-least-privilege-policy.png` | Lambda execution authorization scoped to the DynamoDB incident workflow. |
+| `02-lambda-incident-processor-code.png` | Python/Boto3 incident-processing logic used by `BonTech-Incident-Processor`. |
+| `03-dynamodb-inc-002-record.png` | `INC-002` persisted in `BonTech-Security-Incidents` after Lambda processing. |
+| `04-cloudwatch-successful-incident-processing.png` | CloudWatch application logs confirming successful incident processing and DynamoDB storage. |
+| `05-dynamodb-table-initial-incident-record.png` | DynamoDB incident table and the initial baseline incident data used to establish the schema. |
+| `06-lambda-deployed-incident-processor.png` | The deployed `BonTech-Incident-Processor` Lambda implementation in AWS. |
+
+## Evidence chain
+
+```text
+DynamoDB incident foundation
+          ↓
+AWS Lambda (Python/Boto3)
+          ↓
+IAM least-privilege authorization
+          ↓
+DynamoDB PutItem
+          ↓
+Incident persisted
+          ↓
+CloudWatch validation
+```
+
+## Result
+
+The evidence demonstrates that the Day 1 Lambda could process an incident, use its scoped IAM permissions to write the incident to DynamoDB, and produce operational logs confirming successful processing.
 
 ## Security / Sanitization
 
-Public evidence should not expose unnecessary AWS account IDs, account aliases, credentials, access keys, tokens, or account-specific ARNs. Screenshots containing account-specific identifiers were redacted before being prepared for publication.
-
-## What the evidence proves
-
-Together, these artifacts document the Day 1 path:
-
-```text
-DynamoDB table + incident schema
-          ↓
-AWS Lambda (Python)
-          ↓
-Boto3 / DynamoDB PutItem
-          ↓
-IAM authorization
-          ↓
-Incident stored
-          ↓
-CloudWatch application logs
-```
-
-The final CloudWatch evidence records the application messages for processing `INC-002` and successfully storing the incident in DynamoDB.
+The published screenshots were prepared for portfolio use with unnecessary account-identifying information redacted. Credentials, access keys, secret keys, session tokens, and other authentication material must never be published.
