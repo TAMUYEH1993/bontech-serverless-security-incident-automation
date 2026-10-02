@@ -23,6 +23,8 @@ Amazon EventBridge
         v
 AWS Lambda (Python/Boto3)
         |
+        +------> Controlled IAM Remediation (Day 4)
+        |
         +------> DynamoDB (incident record)
         |
         +------> CloudWatch Logs
@@ -31,9 +33,6 @@ AWS Lambda (Python/Boto3)
                     |
                     v
              Security Analyst Email
-
-Future phases:
-        +------> IAM automated remediation (Day 4)
 
 Future phases:
         +------> API Gateway
@@ -108,6 +107,8 @@ Day 4 extended the pipeline from detection and alerting into a tightly scoped au
 See [Day 4 documentation](docs/day-04.md) and [Day 4 evidence](evidence/day-04/).
 
 ## Detection Pattern
+
+The EventBridge event pattern is also stored as a standalone configuration file at [`eventbridge/sensitive-iam-activity-pattern.json`](eventbridge/sensitive-iam-activity-pattern.json).
 
 ```json
 {
@@ -198,6 +199,8 @@ Security analyst receives the alert by email
 ├── README.md
 ├── lambda/
 │   └── incident_processor.py
+├── eventbridge/
+│   └── sensitive-iam-activity-pattern.json
 ├── docs/
 │   ├── day-01.md
 │   ├── day-02.md
