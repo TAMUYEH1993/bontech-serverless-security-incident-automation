@@ -1,8 +1,8 @@
 # BonTech AWS Serverless Security Incident Automation
 
-A hands-on AWS cloud security engineering project building a serverless security incident automation platform with **CloudTrail, EventBridge, AWS Lambda, Python/Boto3, DynamoDB, Amazon SNS, IAM least privilege, and CloudWatch**.
+A hands-on AWS cloud security engineering project building a serverless security incident automation platform with **CloudTrail, EventBridge, AWS Lambda, Python/Boto3, DynamoDB, Amazon SNS, IAM least privilege, CloudWatch, and controlled automated IAM remediation**.
 
-> **Project status:** Day 3 completed — event-driven IAM security detection, automated incident persistence, CloudWatch logging, and SNS security alerting validated end-to-end.
+> **Project status:** Day 4 completed — event-driven IAM detection, incident persistence, analyst alerting, and controlled automated IAM remediation validated end-to-end.
 
 ## Project Goal
 
@@ -33,7 +33,9 @@ AWS Lambda (Python/Boto3)
              Security Analyst Email
 
 Future phases:
-        +------> Automated response
+        +------> IAM automated remediation (Day 4)
+
+Future phases:
         +------> API Gateway
         +------> Terraform
 ```
@@ -87,6 +89,24 @@ The completed workflow demonstrates how a cloud security event can move from det
 
 See [Day 3 documentation](docs/day-03.md) and [Day 3 evidence](evidence/day-03/).
 
+## Day 4 — Controlled Automated IAM Remediation
+
+Day 4 extended the pipeline from detection and alerting into a tightly scoped automated-response workflow.
+
+- Created dedicated test user `BonTech-Remediation-Test-User`.
+- Added least-privilege `iam:DetachUserPolicy` authorization scoped to that test user.
+- Added a Boto3 IAM client and parsed CloudTrail `requestParameters`.
+- Added a safety gate requiring the exact `AttachUserPolicy` event, test username, and `AmazonS3ReadOnlyAccess` policy ARN.
+- Automatically detached the test policy when all conditions matched.
+- Changed the incident state to `REMEDIATED` after successful response.
+- Verified remediation in CloudWatch, DynamoDB, the IAM user permissions page, and the SNS email alert.
+
+### Day 4 Workflow
+
+**Detect → Validate → Remediate → Record → Log → Alert**
+
+See [Day 4 documentation](docs/day-04.md) and [Day 4 evidence](evidence/day-04/).
+
 ## Detection Pattern
 
 ```json
@@ -109,7 +129,7 @@ See [Day 3 documentation](docs/day-03.md) and [Day 3 evidence](evidence/day-03/)
 
 ### Lambda execution authorization
 
-The Lambda execution role follows least privilege. It permits the DynamoDB write required for incident persistence and a separately scoped SNS publish permission for the project alert topic.
+The Lambda execution role follows least privilege. It permits the DynamoDB write required for incident persistence and a separately scoped SNS publish permission for the project alert topic. Day 4 adds a tightly scoped IAM remediation permission for the dedicated lab user.
 
 DynamoDB permission:
 
@@ -128,6 +148,16 @@ SNS permission:
   "Effect": "Allow",
   "Action": "sns:Publish",
   "Resource": "arn:aws:sns:us-east-1:<ACCOUNT-ID>:BonTech-Security-Alerts"
+}
+```
+
+IAM remediation permission:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": "iam:DetachUserPolicy",
+  "Resource": "arn:aws:iam::<ACCOUNT-ID>:user/BonTech-Remediation-Test-User"
 }
 ```
 
@@ -150,7 +180,9 @@ EventBridge matches the security event
       ↓
 Lambda processes and classifies the incident
       ↓
-DynamoDB stores the structured incident
+For the controlled Day 4 test, Lambda validates the exact user/policy and detaches the policy
+      ↓
+DynamoDB stores the structured incident with REMEDIATED status
       ↓
 CloudWatch records execution and application logs
       ↓
@@ -169,7 +201,8 @@ Security analyst receives the alert by email
 ├── docs/
 │   ├── day-01.md
 │   ├── day-02.md
-│   └── day-03.md
+│   ├── day-03.md
+│   └── day-04.md
 └── evidence/
     ├── day-01/
     │   ├── README.md
@@ -177,17 +210,19 @@ Security analyst receives the alert by email
     ├── day-02/
     │   ├── README.md
     │   └── 6 sanitized AWS evidence screenshots
-    └── day-03/
-        ├── README.md
-        └── AWS Security Automation Evidence Collage.png
+    ├── day-03/
+    │   ├── README.md
+    │   └── AWS Security Automation Evidence Collage.png
+    └── day-04/
+        └── README.md + sanitized validation screenshots
 ```
 
 Screenshots are published only after removing unnecessary account identifiers and sensitive information.
 
 ## Interview Talking Point
 
-> I built an event-driven AWS security incident automation pipeline for sensitive IAM activity. CloudTrail records management events, EventBridge filters high-value IAM API calls, and a Python/Boto3 Lambda function converts matched events into structured incidents in DynamoDB. I applied least privilege to both the Lambda execution role and EventBridge invocation permission. I then extended the workflow with Amazon SNS so processed incidents automatically generate security notifications for the analyst. I validated the workflow using EventBridge and Lambda metrics, CloudWatch logs, DynamoDB records, and successful email alert delivery.
+> I built an event-driven AWS security incident automation pipeline for sensitive IAM activity. CloudTrail records management events, EventBridge filters high-value IAM API calls, and a Python/Boto3 Lambda function converts matched events into structured incidents in DynamoDB. I applied least privilege to both the Lambda execution role and EventBridge invocation permission. I then extended the workflow with Amazon SNS so processed incidents automatically generate security notifications for the analyst. In Day 4, I added a tightly scoped automated IAM response that validates an exact test user and policy before calling DetachUserPolicy, then records the incident as REMEDIATED. I validated the workflow using IAM before/after state, CloudWatch logs, DynamoDB records, and successful email alert delivery.
 
 ## Next Phase
 
-The next iteration can add **automated response/remediation**, followed by API integration and Terraform-based infrastructure deployment.
+The next iteration can add **API integration**, followed by Terraform-based infrastructure deployment and broader production-grade response controls.
