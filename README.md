@@ -2,7 +2,7 @@
 
 A hands-on AWS cloud security engineering project building a serverless security incident automation platform with **CloudTrail, EventBridge, AWS Lambda, Python/Boto3, DynamoDB, Amazon SNS, IAM least privilege, CloudWatch, and controlled automated IAM remediation**.
 
-> **Project status:** Day 4 completed — event-driven IAM detection, incident persistence, analyst alerting, and controlled automated IAM remediation validated end-to-end.
+> **Project status:** Day 5 completed — event-driven IAM detection, controlled IAM remediation, and API-driven incident ingestion validated end-to-end.
 
 ## Project Goal
 
@@ -35,7 +35,16 @@ AWS Lambda (Python/Boto3)
              Security Analyst Email
 
 Future phases:
-        +------> API Gateway
+External API Client / PowerShell
+        |
+        v
+Amazon API Gateway (POST /incidents)
+        |
+        +------> AWS Lambda (same incident processor)
+                    |
+                    +------> DynamoDB / CloudWatch / SNS
+
+Future phase:
         +------> Terraform
 ```
 
@@ -105,6 +114,24 @@ Day 4 extended the pipeline from detection and alerting into a tightly scoped au
 **Detect → Validate → Remediate → Record → Log → Alert**
 
 See [Day 4 documentation](docs/day-04.md) and [Day 4 evidence](evidence/day-04/).
+
+## Day 5 — API Gateway Security Incident Ingestion
+
+Day 5 added an external REST API path so incidents can enter the same serverless security workflow programmatically.
+
+- Created REST API `BonTech-Security-Incident-API`.
+- Created `POST /incidents` with Lambda proxy integration.
+- Deployed the API to the `dev` stage.
+- Updated Lambda to parse API Gateway JSON requests while preserving EventBridge/CloudTrail processing.
+- Added HTTP `201` success responses and `400` handling for invalid JSON.
+- Validated the API from the API Gateway console and an external PowerShell `Invoke-RestMethod` request.
+- Verified the same API-created incident across PowerShell, DynamoDB, CloudWatch, SNS, and email.
+
+### Day 5 Workflow
+
+**Submit → API Gateway → Process → Record → Log → Alert**
+
+See [Day 5 documentation](docs/day-05.md) and [Day 5 evidence](evidence/day-05/).
 
 ## Detection Pattern
 
@@ -205,7 +232,8 @@ Security analyst receives the alert by email
 │   ├── day-01.md
 │   ├── day-02.md
 │   ├── day-03.md
-│   └── day-04.md
+│   ├── day-04.md
+│   └── day-05.md
 └── evidence/
     ├── day-01/
     │   ├── README.md
@@ -216,8 +244,10 @@ Security analyst receives the alert by email
     ├── day-03/
     │   ├── README.md
     │   └── AWS Security Automation Evidence Collage.png
-    └── day-04/
-        └── README.md + sanitized validation screenshots
+    ├── day-04/
+    │   └── README.md + sanitized validation screenshots
+    └── day-05/
+        └── README.md + 6 sanitized validation screenshots
 ```
 
 Screenshots are published only after removing unnecessary account identifiers and sensitive information.
@@ -228,4 +258,4 @@ Screenshots are published only after removing unnecessary account identifiers an
 
 ## Next Phase
 
-The next iteration can add **API integration**, followed by Terraform-based infrastructure deployment and broader production-grade response controls.
+The next iteration can add **Terraform-based infrastructure deployment**, followed by stronger production controls such as API authorization, request validation, throttling, and environment-specific configuration.
