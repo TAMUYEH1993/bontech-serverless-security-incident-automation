@@ -2,7 +2,7 @@
 
 A hands-on AWS cloud security engineering project building a serverless security incident automation platform with **CloudTrail, EventBridge, AWS Lambda, Python/Boto3, DynamoDB, Amazon SNS, IAM least privilege, CloudWatch, and controlled automated IAM remediation**.
 
-> **Project status:** Day 5 completed — event-driven IAM detection, controlled IAM remediation, and API-driven incident ingestion validated end-to-end.
+> **Project status:** Day 5 application workflow completed. Terraform/IaC phase started — local Terraform CLI, AWS provider initialization, and AWS CLI authentication path established.
 
 ## Project Goal
 
@@ -256,6 +256,12 @@ Screenshots are published only after removing unnecessary account identifiers an
 
 > I built an event-driven AWS security incident automation pipeline for sensitive IAM activity. CloudTrail records management events, EventBridge filters high-value IAM API calls, and a Python/Boto3 Lambda function converts matched events into structured incidents in DynamoDB. I applied least privilege to both the Lambda execution role and EventBridge invocation permission. I then extended the workflow with Amazon SNS so processed incidents automatically generate security notifications for the analyst. In Day 4, I added a tightly scoped automated IAM response that validates an exact test user and policy before calling DetachUserPolicy, then records the incident as REMEDIATED. I validated the workflow using IAM before/after state, CloudWatch logs, DynamoDB records, and successful email alert delivery.
 
+## Terraform / Infrastructure as Code Phase
+
+Terraform implementation has started. The initial workstation and AWS connectivity stage is documented in [Terraform Phase 1 — CLI & AWS Setup](docs/terraform-01-cli-aws-setup.md).
+
+Current Terraform checkpoint: CLI verified, dedicated workspace created, AWS provider configured and initialized, and AWS CLI authentication verified. No Terraform-managed AWS resources have been applied yet.
+
 ## Next Phase
 
-The next iteration can add **Terraform-based infrastructure deployment**, followed by stronger production controls such as API authorization, request validation, throttling, and environment-specific configuration.
+Define the first Terraform-managed AWS resource, run formatting and validation, and review `terraform plan` before any infrastructure is created. Later iterations will reproduce the remaining project infrastructure and add stronger production controls such as API authorization, request validation, throttling, and environment-specific configuration.
