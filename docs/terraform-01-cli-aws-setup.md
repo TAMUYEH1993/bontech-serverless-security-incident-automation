@@ -405,30 +405,119 @@ aws configure
 aws sts get-caller-identity
 ```
 
-## Current Terraform Checkpoint
+## Terraform DynamoDB Deployment — Commands and Meanings
 
-**Completed:**
+The first Terraform-managed AWS resource is now complete.
 
-```text
-Terraform installation
-        ↓
-Dedicated project directory
-        ↓
-provider.tf
-        ↓
-AWS provider definition
-        ↓
-terraform init
-        ↓
-AWS provider installed
-        ↓
-AWS CLI credential configuration
-        ↓
-STS identity verification
-        ↓
-AWS communication established
+| Command | Meaning | Why it was used |
+|---|---|---|
+| `notepad main.tf` | Opens/creates the main Terraform configuration file. | Defined the DynamoDB resource as Infrastructure as Code. |
+| `terraform fmt` | **Format** Terraform configuration into standard HCL formatting. | Keeps Terraform code consistent and readable. |
+| `terraform validate` | Checks whether the Terraform configuration is syntactically and structurally valid. | Catches configuration errors before planning or applying. |
+| `terraform plan` | Compares configuration, state, and real infrastructure and previews proposed changes. | Allowed review before AWS was changed. Initial result: **1 to add, 0 to change, 0 to destroy**. |
+| `terraform apply` | Executes the approved Terraform plan against the configured provider. | Created the DynamoDB table in AWS. |
+| `yes` | Explicit approval entered at Terraform's interactive apply checkpoint. | Authorized Terraform to perform the proposed change. |
+| `terraform state list` | Lists resource addresses Terraform currently tracks in state. | Confirmed `aws_dynamodb_table.security_incidents` is managed by Terraform. |
+| `terraform state show aws_dynamodb_table.security_incidents` | Displays the stored state details for that managed resource. | Confirmed the real table properties known to Terraform. |
+| `notepad .gitignore` | Opens/creates Git ignore rules. | Added protections so local state, provider downloads, plan files, and potentially sensitive variable files are not committed. |
+| `Get-Content .gitignore` | Displays the saved `.gitignore` file in PowerShell. | Verified the security exclusions were saved correctly. |
+| `terraform plan` *(after apply)* | Refreshes and compares configuration/state/infrastructure again. | Returned **No changes. Your infrastructure matches the configuration**, proving the deployed resource and Terraform configuration are synchronized. |
+
+### main.tf resource
+
+```hcl
+resource "aws_dynamodb_table" "security_incidents" {
+  name         = "BonTech-Security-Incidents-Terraform"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "incident_id"
+
+  attribute {
+    name = "incident_id"
+    type = "S"
+  }
+
+  tags = {
+    ManagedBy = "Terraform"
+    Project   = "BonTech-Serverless-Security"
+  }
+}
 ```
 
-No Terraform-managed AWS infrastructure has been applied at this checkpoint.
+### What each DynamoDB setting means
 
-**Next:** define the first AWS resource, then run `terraform fmt`, `terraform validate`, and `terraform plan` before any `terraform apply`.
+- `resource "aws_dynamodb_table" "security_incidents"` — declares a DynamoDB table resource and gives Terraform the local resource address `aws_dynamodb_table.security_incidents`.
+- `name` — the table name created in AWS.
+- `billing_mode = "PAY_PER_REQUEST"` — uses DynamoDB on-demand capacity instead of manually provisioned read/write capacity.
+- `hash_key = "incident_id"` — makes `incident_id` the table partition key.
+- `type = "S"` — defines the key attribute as a string.
+- `ManagedBy = "Terraform"` — identifies Terraform as the management method.
+- `Project` — associates the resource with this serverless security project.
+
+### Deployment result
+
+Terraform reported:
+
+```text
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+```
+
+AWS Console verification confirmed the table was **Active**, used `incident_id` as the String partition key, and used on-demand capacity.
+
+The subsequent plan reported:
+
+```text
+No changes. Your infrastructure matches the configuration.
+```
+
+This demonstrates the core Terraform lifecycle:
+
+```text
+Write configuration
+      ↓
+terraform fmt
+      ↓
+terraform validate
+      ↓
+terraform plan
+      ↓
+Review proposed changes
+      ↓
+terraform apply
+      ↓
+AWS resource created
+      ↓
+Terraform state tracks resource
+      ↓
+terraform plan again
+      ↓
+No drift / no changes
+```
+
+## State and GitHub Security
+
+Terraform state is intentionally excluded from version control because state can contain infrastructure metadata and potentially sensitive values.
+
+The Terraform folder includes a `.gitignore` that excludes:
+
+```text
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+```
+
+The dependency lock file `.terraform.lock.hcl` should normally be committed when the local project is committed through Git so provider selections remain reproducible.
+
+## Current Terraform Checkpoint
+
+**Completed:** Terraform CLI setup → AWS provider initialization → AWS CLI authentication → DynamoDB configuration → formatting → validation → plan review → apply → AWS verification → Terraform state verification → Git safety controls → post-apply no-change plan.
+
+**Next:** continue converting the remaining serverless security architecture to Terraform while preserving least privilege and validating each resource before apply.
