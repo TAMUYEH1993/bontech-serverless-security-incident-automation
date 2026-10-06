@@ -2,7 +2,7 @@
 
 A hands-on AWS cloud security engineering project building a serverless security incident automation platform with **CloudTrail, EventBridge, AWS Lambda, Python/Boto3, DynamoDB, Amazon SNS, IAM least privilege, CloudWatch, and controlled automated IAM remediation**.
 
-> **Project status:** Day 5 application workflow completed. Terraform/IaC phase started — local Terraform CLI, AWS provider initialization, and AWS CLI authentication path established.
+> **Project status:** Day 5 application workflow completed. Terraform/IaC phase in progress — CLI/provider setup completed and the first Terraform-managed DynamoDB resource has been created, verified, and checked for drift.
 
 ## Project Goal
 
@@ -260,8 +260,18 @@ Screenshots are published only after removing unnecessary account identifiers an
 
 Terraform implementation has started. The initial workstation and AWS connectivity stage is documented in [Terraform Phase 1 — CLI & AWS Setup](docs/terraform-01-cli-aws-setup.md).
 
-Current Terraform checkpoint: CLI verified, dedicated workspace created, AWS provider configured and initialized, and AWS CLI authentication verified. No Terraform-managed AWS resources have been applied yet.
+Current Terraform checkpoint: CLI and AWS authentication verified; `provider.tf`, `main.tf`, and Terraform Git safety rules are documented; `BonTech-Security-Incidents-Terraform` was created with Terraform and verified in AWS; Terraform state tracking was confirmed; and a post-apply `terraform plan` returned **No changes**.
+
+## Terraform Files
+
+The current Infrastructure as Code checkpoint is stored under [`terraform/`](terraform/):
+
+- `provider.tf` — declares the HashiCorp AWS provider and target Region.
+- `main.tf` — defines the first Terraform-managed DynamoDB table.
+- `.gitignore` — prevents state, provider downloads, plans, and potentially sensitive variable files from being committed.
+
+Every setup and deployment command, its meaning, and why it was used is documented in [Terraform Phase 1 — CLI, AWS Setup & DynamoDB Deployment](docs/terraform-01-cli-aws-setup.md).
 
 ## Next Phase
 
-Define the first Terraform-managed AWS resource, run formatting and validation, and review `terraform plan` before any infrastructure is created. Later iterations will reproduce the remaining project infrastructure and add stronger production controls such as API authorization, request validation, throttling, and environment-specific configuration.
+Continue converting the remaining serverless security architecture to Terraform, reviewing `terraform plan` before every apply and preserving least-privilege security controls.
